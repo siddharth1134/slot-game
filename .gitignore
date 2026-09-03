@@ -34,3 +34,7 @@ Desktop.ini
 
 # WebGL Build (if you want to ignore built files, but assignment says include them)
 # /Build/WebGL/
+
+# Editor generated files
+*.slnx
+.vscode/
