@@ -1,27 +1,55 @@
+using System;
+using System.Collections;
 using UnityEngine;
 
+/// <summary>
+/// Manages all reels in the slot game.
+/// Responsible for starting, stopping, and collecting reel results.
+/// </summary>
 public class ReelManager : MonoBehaviour
 {
-    // Array of Reel objects that represent the reels in the game
+    [Header("Reel References")]
     [SerializeField]
     private Reel[] reels;
 
-     [SerializeField]
+    [Header("Evaluation")]
+    [SerializeField]
     private WinEvaluator winEvaluator;
 
-    // Exposes the reels for other scripts
+    [Header("Spin Settings")]
+    [SerializeField]
+    private float spinDuration = 2f;
+
+    private bool isSpinning;
+
+    /// <summary>
+    /// Exposes the reels for other systems.
+    /// </summary>
     public Reel[] Reels => reels;
 
     /// <summary>
-    /// Spins all reels in the game.
+    /// Returns true while the reels are spinning.
+    /// </summary>
+    public bool IsSpinning => isSpinning;
+
+
+    /// <summary>
+    /// Starts a spin of all reels.
     /// </summary>
     public void SpinAll()
     {
+        if (isSpinning)
+        {
+            return;
+        }
+
         if (reels == null || reels.Length == 0)
         {
             Debug.LogWarning("No reels assigned to the ReelManager.");
             return;
         }
+
+        isSpinning = true;
 
         foreach (Reel reel in reels)
         {
@@ -35,8 +63,41 @@ public class ReelManager : MonoBehaviour
         }
     }
 
+
     /// <summary>
-    /// Stops all reels in the game.
+    /// Spins all reels, waits for the spin duration,
+    /// stops the reels, and then notifies the caller.
+    /// </summary>
+    public void SpinAllAndWait(Action onComplete)
+    {
+        if (isSpinning)
+        {
+            return;
+        }
+
+        StartCoroutine(SpinRoutine(onComplete));
+    }
+
+
+    /// <summary>
+    /// Controls the complete reel spin lifecycle.
+    /// </summary>
+    private IEnumerator SpinRoutine(Action onComplete)
+    {
+        SpinAll();
+
+        yield return new WaitForSeconds(spinDuration);
+
+        StopAll();
+
+        isSpinning = false;
+
+        onComplete?.Invoke();
+    }
+
+
+    /// <summary>
+    /// Stops all reels.
     /// </summary>
     public void StopAll()
     {
@@ -58,6 +119,7 @@ public class ReelManager : MonoBehaviour
         }
     }
 
+
     /// <summary>
     /// Gets the current symbol from every reel.
     /// </summary>
@@ -66,116 +128,39 @@ public class ReelManager : MonoBehaviour
         if (reels == null || reels.Length == 0)
         {
             Debug.LogWarning("ReelManager contains no reels.");
-            return new SymbolData[0];
+            return Array.Empty<SymbolData>();
         }
 
         SymbolData[] results = new SymbolData[reels.Length];
 
         for (int i = 0; i < reels.Length; i++)
         {
-            if (reels[i] != null)
-            {
-                results[i] = reels[i].CurrentSymbol;
-            }
-            else
+            if (reels[i] == null)
             {
                 Debug.LogWarning($"Reel at index {i} is null.");
-                results[i] = null;
+                continue;
             }
+
+            results[i] = reels[i].CurrentSymbol;
         }
 
         return results;
     }
 
 
-public int EvaluateWin(int bet)
-{
-    if(winEvaluator == null)
+    /// <summary>
+    /// Evaluates the current reel result.
+    /// </summary>
+    public int EvaluateWin(int bet)
     {
-        Debug.LogWarning("WinEvaluator is not assigned in ReelManager.");
-        return 0;
-    }
-SymbolData[] results = GetResults();
-    return winEvaluator.Evaluate(results, bet);
-}
-
-// temporary testing method to simulate a spin and evaluate the result
-[ContextMenu("Test Spin And Evaluate")]
-public void TestSpinAndEvaluate()
-{
-    int testBet = 10;
-
-    SpinAll();
-
-    SymbolData[] results = GetResults();
-
-    Debug.Log("=== SLOT TEST ===");
-
-    for (int i = 0; i < results.Length; i++)
-    {
-        if (results[i] != null)
+        if (winEvaluator == null)
         {
-            Debug.Log($"Reel {i + 1}: {results[i].name}");
+            Debug.LogWarning("WinEvaluator is not assigned in ReelManager.");
+            return 0;
         }
-        else
-        {
-            Debug.Log($"Reel {i + 1}: NULL");
-        }
+
+        SymbolData[] results = GetResults();
+
+        return winEvaluator.Evaluate(results, bet);
     }
-
-    int winAmount = EvaluateWin(testBet);
-
-    Debug.Log($"Test Bet: {testBet}");
-    Debug.Log($"Win Amount: {winAmount}");
-}
-
-// temporary testing method to simulate a winning result and evaluate it
-[ContextMenu("Test Winning Result")]
-public void TestWinningResult()
-{
-    int testBet = 10;
-
-    // Validate reels
-    if (reels == null || reels.Length < 3)
-    {
-        Debug.LogWarning("At least 3 reels are required for the winning test.");
-        return;
-    }
-
-    // Validate WinEvaluator
-    if (winEvaluator == null)
-    {
-        Debug.LogWarning("WinEvaluator is not assigned in ReelManager.");
-        return;
-    }
-
-    // Get the first reel's current symbol
-    SymbolData winningSymbol = reels[0].CurrentSymbol;
-
-    if (winningSymbol == null)
-    {
-        Debug.LogWarning("Reel 1 has no current symbol. Run Test Spin And Evaluate first.");
-        return;
-    }
-
-    // Create a controlled winning result
-    SymbolData[] testResults = new SymbolData[]
-    {
-        winningSymbol,
-        winningSymbol,
-        winningSymbol
-    };
-
-    // Evaluate the controlled result
-    int winAmount = winEvaluator.Evaluate(testResults, testBet);
-
-    Debug.Log("=== WINNING TEST ===");
-    Debug.Log($"Symbol: {winningSymbol.name}");
-    Debug.Log($"Match Count: {testResults.Length}");
-    Debug.Log($"Test Bet: {testBet}");
-    Debug.Log($"Win Amount: {winAmount}");
-}
-
-
-    
 }

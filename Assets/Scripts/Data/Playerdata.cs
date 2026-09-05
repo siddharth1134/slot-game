@@ -2,6 +2,7 @@
 public class PlayerData
 {
     public int Balance{get; private set;}
+    
     public int Bet {get; private set;}
 // Constructor to initialize the player's data with starting balance and bet amount.
     public PlayerData(int startingBalance, int startingBet)
@@ -13,7 +14,7 @@ public class PlayerData
     {
         return Balance >= Bet;
     }
-    public bool Placebet()
+    public bool PlaceBet()
     {
         if(!CanPlaceBet())
         {
