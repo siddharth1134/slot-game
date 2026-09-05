@@ -1,57 +1,63 @@
-using Sysyem;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-[CreateAssetMenu{
+[CreateAssetMenu(
     fileName = "Paytable",
     menuName = "Data/Paytable"
-}]
-public class Paytable : scriptableObject
+)]
+public class Paytable : ScriptableObject
 {
-    [SerializeField] private List<SymbolpaytableEntry> entries = new List<SymbolpaytableEntry>();
+    [SerializeField]
+    private List<SymbolPaytableEntry> entries = new List<SymbolPaytableEntry>();
 
     public int GetMultiplier(SymbolData symbol, int matchCount)
     {
-        foreach(SymbolpaytableEntry entry in entries)
+        foreach (SymbolPaytableEntry entry in entries)
         {
-            if(entry.Symbol == symbol && entry.MatchCount == matchCount)
+            if (entry.Symbol == symbol)
             {
-                return entry.Multiplier;
+                return entry.GetMultiplier(matchCount);
             }
         }
+
         return 0;
     }
 }
-[Serializable]
 
+[Serializable]
 public class SymbolPaytableEntry
 {
-     [serializeField] private SymbolData symbol;
+    [SerializeField]
+    private SymbolData symbol;
 
-     [serializeField] private List<Payout> payouts = new List<Payout>();
+    [SerializeField]
+    private List<Payout> payouts = new List<Payout>();
 
-     public SymbolData Symbol => symbol;
+    public SymbolData Symbol => symbol;
 
     public int GetMultiplier(int matchCount)
     {
-        foreach(Payout payout in payouts)
+        foreach (Payout payout in payouts)
         {
-            if(payout.MatchCount == matchCount)
+            if (payout.MatchCount == matchCount)
             {
                 return payout.Multiplier;
             }
         }
+
         return 0;
     }
-
 }
+
 [Serializable]
 public class Payout
 {
-    [SerializeField] private int matchCount;
-    
+    [SerializeField]
+    private int matchCount;
 
-    [SerializeField] private int multiplier;
+    [SerializeField]
+    private int multiplier;
 
     public int MatchCount => matchCount;
     public int Multiplier => multiplier;
