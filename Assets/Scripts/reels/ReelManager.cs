@@ -6,6 +6,9 @@ public class ReelManager : MonoBehaviour
     [SerializeField]
     private Reel[] reels;
 
+     [SerializeField]
+    private WinEvaluator winEvaluator;
+
     // Exposes the reels for other scripts
     public Reel[] Reels => reels;
 
@@ -83,4 +86,17 @@ public class ReelManager : MonoBehaviour
 
         return results;
     }
+
+
+public int EvaluateWin(int bet)
+{
+    if(winEvaluator == null)
+    {
+        Debug.LogWarning("WinEvaluator is not assigned in ReelManager.");
+        return 0;
+    }
+SymbolData[] results = GetResults();
+    return winEvaluator.Evaluate(results, bet);
+}
+    
 }
