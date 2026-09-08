@@ -1,47 +1,132 @@
+using System.Collections;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class Reel : MonoBehaviour
 {
-    // The symbols that can appear on this reel
+    [Header("Symbols")]
     [SerializeField]
     private SymbolData[] symbols;
 
-    // The current symbol displayed on the reel
-    private SymbolData currentSymbol;
+    [Header("Visual")]
+    [SerializeField]
+    private Image symbolImage;
 
-    // Whether this reel is currently spinning
+    [Header("Spin Settings")]
+    [SerializeField]
+    private float symbolChangeInterval = 0.1f;
+
+    private SymbolData currentSymbol;
     private bool isSpinning;
 
-    // Public access to the current symbol
     public SymbolData CurrentSymbol => currentSymbol;
-
-    // Public access to the spinning state
     public bool IsSpinning => isSpinning;
 
+
+    private void Start()
+    {
+        // Show a random symbol when the game starts.
+        SelectRandomSymbol();
+    }
+
+
     /// <summary>
-    /// Spins the reel and selects a random symbol.
+    /// Starts spinning the reel.
     /// </summary>
     public void Spin()
     {
+        if (isSpinning)
+        {
+            return;
+        }
+
         if (symbols == null || symbols.Length == 0)
         {
-            Debug.LogWarning("No symbols assigned to the reel.");
+            Debug.LogWarning($"{name}: No symbols assigned to the reel.");
             return;
         }
 
         isSpinning = true;
 
-        int randomIndex = Random.Range(0, symbols.Length);
-        currentSymbol = symbols[randomIndex];
-
-        isSpinning = false;
+        StartCoroutine(SpinRoutine());
     }
 
+
     /// <summary>
-    /// Stops the reel.
+    /// Changes the displayed symbol repeatedly while spinning.
+    /// </summary>
+    private IEnumerator SpinRoutine()
+    {
+        while (isSpinning)
+        {
+            SelectRandomSymbol();
+
+            yield return new WaitForSeconds(symbolChangeInterval);
+        }
+    }
+
+
+    /// <summary>
+    /// Stops the reel and selects the final symbol.
     /// </summary>
     public void Stop()
     {
+        if (!isSpinning)
+        {
+            return;
+        }
+
         isSpinning = false;
+
+        // Select the final result.
+        SelectRandomSymbol();
+    }
+
+
+    /// <summary>
+    /// Selects a random symbol from the symbol list.
+    /// </summary>
+    private void SelectRandomSymbol()
+    {
+        if (symbols == null || symbols.Length == 0)
+        {
+            Debug.LogWarning($"{name}: No symbols assigned to the reel.");
+            return;
+        }
+
+        int randomIndex = Random.Range(0, symbols.Length);
+
+        currentSymbol = symbols[randomIndex];
+
+        UpdateVisual();
+    }
+
+
+    /// <summary>
+    /// Displays the current symbol's sprite.
+    /// </summary>
+    private void UpdateVisual()
+    {
+        if (symbolImage == null)
+        {
+            Debug.LogWarning($"{name}: Symbol Image is not assigned.");
+            return;
+        }
+
+        if (currentSymbol == null)
+        {
+            Debug.LogWarning($"{name}: Current symbol is null.");
+            return;
+        }
+
+        if (currentSymbol.Sprite == null)
+        {
+            Debug.LogWarning(
+                $"{name}: Symbol '{currentSymbol.DisplayName}' has no Sprite assigned."
+            );
+            return;
+        }
+
+        symbolImage.sprite = currentSymbol.Sprite;
     }
 }

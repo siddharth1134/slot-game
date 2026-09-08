@@ -4,7 +4,12 @@ using UnityEngine;
 
 /// <summary>
 /// Manages all reels in the slot game.
-/// Responsible for starting, stopping, and collecting reel results.
+///
+/// Responsibilities:
+/// - Starting all reels.
+/// - Stopping reels sequentially.
+/// - Collecting the final reel results.
+/// - Passing results to WinEvaluator.
 /// </summary>
 public class ReelManager : MonoBehaviour
 {
@@ -20,6 +25,9 @@ public class ReelManager : MonoBehaviour
     [SerializeField]
     private float spinDuration = 2f;
 
+    [SerializeField]
+    private float reelStopDelay = 0.25f;
+
     private bool isSpinning;
 
     /// <summary>
@@ -34,7 +42,7 @@ public class ReelManager : MonoBehaviour
 
 
     /// <summary>
-    /// Starts a spin of all reels.
+    /// Starts all reels spinning.
     /// </summary>
     public void SpinAll()
     {
@@ -45,7 +53,10 @@ public class ReelManager : MonoBehaviour
 
         if (reels == null || reels.Length == 0)
         {
-            Debug.LogWarning("No reels assigned to the ReelManager.");
+            Debug.LogWarning(
+                "No reels assigned to the ReelManager."
+            );
+
             return;
         }
 
@@ -55,7 +66,10 @@ public class ReelManager : MonoBehaviour
         {
             if (reel == null)
             {
-                Debug.LogWarning("ReelManager contains an empty Reel reference.");
+                Debug.LogWarning(
+                    "ReelManager contains an empty Reel reference."
+                );
+
                 continue;
             }
 
@@ -65,8 +79,9 @@ public class ReelManager : MonoBehaviour
 
 
     /// <summary>
-    /// Spins all reels, waits for the spin duration,
-    /// stops the reels, and then notifies the caller.
+    /// Starts all reels, waits for the spin duration,
+    /// stops each reel one after another,
+    /// and finally notifies the caller.
     /// </summary>
     public void SpinAllAndWait(Action onComplete)
     {
@@ -75,35 +90,79 @@ public class ReelManager : MonoBehaviour
             return;
         }
 
-        StartCoroutine(SpinRoutine(onComplete));
+        if (reels == null || reels.Length == 0)
+        {
+            Debug.LogWarning(
+                "No reels assigned to the ReelManager."
+            );
+
+            return;
+        }
+
+        StartCoroutine(
+            SpinRoutine(onComplete)
+        );
     }
 
 
     /// <summary>
-    /// Controls the complete reel spin lifecycle.
+    /// Controls the complete spin lifecycle.
+    ///
+    /// All reels start together.
+    /// After the main spin duration, each reel stops
+    /// sequentially with a small delay between them.
     /// </summary>
     private IEnumerator SpinRoutine(Action onComplete)
     {
+        // Start all reels.
         SpinAll();
 
+        // Allow the reels to spin normally.
         yield return new WaitForSeconds(spinDuration);
 
-        StopAll();
+        // Stop reels one by one.
+        for (int i = 0; i < reels.Length; i++)
+        {
+            if (reels[i] == null)
+            {
+                continue;
+            }
 
+            // Stop this reel.
+            reels[i].Stop();
+
+            // Wait before stopping the next reel.
+            if (i < reels.Length - 1)
+            {
+                yield return new WaitForSeconds(
+                    reelStopDelay
+                );
+            }
+        }
+
+        // The complete reel sequence has finished.
         isSpinning = false;
 
+        // Tell SlotGameManager that the spin is complete.
         onComplete?.Invoke();
     }
 
 
     /// <summary>
-    /// Stops all reels.
+    /// Stops all reels immediately.
+    ///
+    /// This is useful for emergency/manual stopping.
+    /// Normal gameplay uses the sequential stopping
+    /// inside SpinRoutine().
     /// </summary>
     public void StopAll()
     {
         if (reels == null || reels.Length == 0)
         {
-            Debug.LogWarning("No reels assigned to the ReelManager.");
+            Debug.LogWarning(
+                "No reels assigned to the ReelManager."
+            );
+
             return;
         }
 
@@ -111,12 +170,17 @@ public class ReelManager : MonoBehaviour
         {
             if (reel == null)
             {
-                Debug.LogWarning("ReelManager contains an empty Reel reference.");
+                Debug.LogWarning(
+                    "ReelManager contains an empty Reel reference."
+                );
+
                 continue;
             }
 
             reel.Stop();
         }
+
+        isSpinning = false;
     }
 
 
@@ -127,17 +191,24 @@ public class ReelManager : MonoBehaviour
     {
         if (reels == null || reels.Length == 0)
         {
-            Debug.LogWarning("ReelManager contains no reels.");
+            Debug.LogWarning(
+                "ReelManager contains no reels."
+            );
+
             return Array.Empty<SymbolData>();
         }
 
-        SymbolData[] results = new SymbolData[reels.Length];
+        SymbolData[] results =
+            new SymbolData[reels.Length];
 
         for (int i = 0; i < reels.Length; i++)
         {
             if (reels[i] == null)
             {
-                Debug.LogWarning($"Reel at index {i} is null.");
+                Debug.LogWarning(
+                    $"Reel at index {i} is null."
+                );
+
                 continue;
             }
 
@@ -155,12 +226,18 @@ public class ReelManager : MonoBehaviour
     {
         if (winEvaluator == null)
         {
-            Debug.LogWarning("WinEvaluator is not assigned in ReelManager.");
+            Debug.LogWarning(
+                "WinEvaluator is not assigned in ReelManager."
+            );
+
             return 0;
         }
 
         SymbolData[] results = GetResults();
 
-        return winEvaluator.Evaluate(results, bet);
+        return winEvaluator.Evaluate(
+            results,
+            bet
+        );
     }
 }
